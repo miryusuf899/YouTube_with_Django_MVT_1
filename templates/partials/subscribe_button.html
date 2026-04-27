@@ -1,0 +1,15 @@
+<form method="post"
+      action="{% url 'toggle_subscription' channel.username %}"
+      hx-post="{% url 'toggle_subscription' channel.username %}"
+      hx-target="#subscribe-wrap"
+      hx-swap="innerHTML">
+  {% csrf_token %}
+  <button type="submit"
+          class="btn-subscribe {% if is_subscribed %}subscribed{% endif %}">
+    {% if is_subscribed %}
+      <i class="bi bi-bell-slash-fill me-1"></i> Отписаться
+    {% else %}
+      <i class="bi bi-bell-fill me-1"></i> Подписаться
+    {% endif %}
+  </button>
+</form>

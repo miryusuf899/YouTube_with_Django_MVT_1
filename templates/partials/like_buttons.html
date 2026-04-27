@@ -1,0 +1,24 @@
+<div class="like-pill">
+  <form method="post"
+        action="{% url 'like_toggle' video.pk %}"
+        hx-post="{% url 'like_toggle' video.pk %}"
+        hx-target="#like-section"
+        hx-swap="innerHTML">
+    {% csrf_token %}
+    <button type="submit" class="{% if user_like == 1 %}active{% endif %}"
+            title="Нравится"
+            {% if not request.user.is_authenticated %}onclick="window.location='{% url 'login' %}';return false;"{% endif %}>
+      <i class="bi bi-hand-thumbs-up{% if user_like == 1 %}-fill{% endif %}"></i>
+      {{ likes_count }}
+    </button>
+  </form>
+
+  <div class="divider"></div>
+
+  <button type="button"
+          class="{% if user_like == -1 %}active{% endif %}"
+          title="Не нравится"
+          style="border-left:none;">
+    <i class="bi bi-hand-thumbs-down{% if user_like == -1 %}-fill{% endif %}"></i>
+  </button>
+</div>

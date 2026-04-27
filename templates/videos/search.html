@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  {% if query %}«{{ query }}» — Поиск{% else %}Поиск{% endif %} — VidShare
+{% endblock %}
+
+{% block content %}
+<div class="px-4 py-3">
+
+  {% if query %}
+    <div style="font-size:14px;color:var(--yt-text-2);margin-bottom:20px;">
+      Результаты по запросу: <strong style="color:var(--yt-text);">{{ query }}</strong>
+      {% if videos %}&nbsp;· {{ page_obj.paginator.count }} видео{% endif %}
+    </div>
+  {% else %}
+    <div style="font-size:20px;font-weight:700;margin-bottom:20px;color:var(--yt-text);">
+      Все видео
+    </div>
+  {% endif %}
+
+  {% if videos %}
+
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      {% for video in videos %}
+      <a href="{% url 'video_detail' video.pk %}" class="search-result-item" style="text-decoration:none;">
+
+        <!-- Thumbnail -->
+        <div class="search-result-item__thumb">
+          {% if video.thumbnail %}
+            <img src="{{ video.thumbnail.url }}" alt="{{ video.title }}" loading="lazy">
+          {% else %}
+            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--yt-surface-3);color:var(--yt-text-3);font-size:36px;">
+              <i class="bi bi-play-circle"></i>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Info -->
+        <div class="search-result-item__info">
+          <div class="search-result-item__title">{{ video.title }}</div>
+          <div class="search-result-item__meta">
+            {{ video.views }} просмотров &nbsp;·&nbsp; {{ video.created_at|timesince }} назад
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            {% if video.author.avatar %}
+              <img src="{{ video.author.avatar.url }}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" alt="">
+            {% endif %}
+            <span style="font-size:13px;color:var(--yt-text-2);">{{ video.author.username }}</span>
+          </div>
+          {% if video.description %}
+            <div class="search-result-item__desc">{{ video.description }}</div>
+          {% endif %}
+        </div>
+
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Страницы" class="mt-4">
+      <ul class="pagination">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?q={{ query }}&page={{ page_obj.previous_page_number }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+              <a class="page-link" href="?q={{ query }}&page={{ num }}">{{ num }}</a>
+            </li>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?q={{ query }}&page={{ page_obj.next_page_number }}">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+
+  {% else %}
+    <div class="text-center py-5" style="color:var(--yt-text-2);">
+      <i class="bi bi-search" style="font-size:64px;display:block;margin-bottom:16px;"></i>
+      <h3 style="font-size:20px;font-weight:600;color:var(--yt-text);">
+        {% if query %}Ничего не найдено{% else %}Введите запрос{% endif %}
+      </h3>
+      <p style="font-size:14px;">
+        {% if query %}
+          По запросу «{{ query }}» видео не найдены. Попробуйте другие ключевые слова.
+        {% else %}
+          Введите слово в строку поиска, чтобы найти видео.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

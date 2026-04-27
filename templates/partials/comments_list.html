@@ -1,0 +1,47 @@
+{% for comment in comments %}
+<div class="comment-item" id="comment-{{ comment.pk }}">
+
+  <!-- Avatar -->
+  {% if comment.user.avatar %}
+    <img src="{{ comment.user.avatar.url }}" class="comment-item__avatar" alt="{{ comment.user.username }}">
+  {% else %}
+    <div class="comment-item__avatar d-flex align-items-center justify-content-center"
+         style="background:var(--yt-surface-3);">
+      <i class="bi bi-person-fill" style="font-size:18px;color:var(--yt-text-2);"></i>
+    </div>
+  {% endif %}
+
+  <div class="comment-item__body">
+    <div class="comment-item__header">
+      <a href="{% url 'channel' comment.user.username %}" class="comment-item__author">
+        {{ comment.user.username }}
+      </a>
+      <span class="comment-item__date">{{ comment.created_at|timesince }} назад</span>
+    </div>
+
+    <div class="comment-item__text">{{ comment.text }}</div>
+
+    {% if request.user == comment.user %}
+    <div class="comment-item__actions">
+      <form method="post"
+            action="{% url 'comment_delete' comment.pk %}"
+            hx-post="{% url 'comment_delete' comment.pk %}"
+            hx-target="#comments-list"
+            hx-swap="innerHTML"
+            hx-confirm="Удалить этот комментарий?">
+        {% csrf_token %}
+        <button type="submit">
+          <i class="bi bi-trash3 me-1"></i> Удалить
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% empty %}
+<div style="text-align:center;padding:32px 0;color:var(--yt-text-2);">
+  <i class="bi bi-chat-square" style="font-size:32px;display:block;margin-bottom:8px;"></i>
+  <p style="font-size:14px;">Комментариев пока нет. Будьте первым!</p>
+</div>
+{% endfor %}

@@ -1,0 +1,44 @@
+{% if notifications %}
+<div class="position-relative">
+  <button class="notification-btn" id="notifToggle" onclick="toggleNotifs()" title="Уведомления">
+    <i class="bi bi-bell-fill"></i>
+    <span class="notification-badge">{{ notifications|length }}</span>
+  </button>
+
+  <div id="notifPanel" class="notifications-panel" style="display:none;right:0;">
+    <div class="notifications-panel__header">
+      <i class="bi bi-bell me-2"></i> Уведомления
+    </div>
+    {% for n in notifications %}
+    <div class="notification-item unread">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--yt-surface-3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--yt-text-2);">
+        <i class="bi bi-person-fill"></i>
+      </div>
+      <div>
+        <div class="notification-item__text">{{ n.message }}</div>
+        <div class="notification-item__time">{{ n.created_at|timesince }} назад</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  function toggleNotifs() {
+    const panel = document.getElementById('notifPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  }
+  document.addEventListener('click', function(e) {
+    const btn   = document.getElementById('notifToggle');
+    const panel = document.getElementById('notifPanel');
+    if (panel && btn && !btn.contains(e.target) && !panel.contains(e.target)) {
+      panel.style.display = 'none';
+    }
+  });
+</script>
+
+{% else %}
+<button class="notification-btn" title="Нет уведомлений">
+  <i class="bi bi-bell"></i>
+</button>
+{% endif %}

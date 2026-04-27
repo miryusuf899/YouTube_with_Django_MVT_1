@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Подписки — VidShare{% endblock %}
+
+{% block content %}
+<div class="px-4 py-3">
+
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:20px;color:var(--yt-text);">
+    <i class="bi bi-collection-play-fill me-2" style="color:var(--yt-red);"></i>
+    Лента подписок
+  </h2>
+
+  {% if videos %}
+    <div class="video-grid">
+      {% for video in videos %}
+      <a href="{% url 'video_detail' video.pk %}" class="video-card" style="text-decoration:none;">
+
+        <div class="video-card__thumb">
+          {% if video.thumbnail %}
+            <img src="{{ video.thumbnail.url }}" alt="{{ video.title }}" loading="lazy">
+          {% else %}
+            <div class="video-card__thumb-placeholder">
+              <i class="bi bi-play-circle"></i>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="video-card__meta">
+          <a href="{% url 'channel' video.author.username %}" onclick="event.stopPropagation()">
+            {% if video.author.avatar %}
+              <img src="{{ video.author.avatar.url }}" class="video-card__avatar" alt="{{ video.author.username }}">
+            {% else %}
+              <div class="video-card__avatar d-flex align-items-center justify-content-center" style="background:var(--yt-surface-3);">
+                <i class="bi bi-person-fill" style="color:var(--yt-text-2);"></i>
+              </div>
+            {% endif %}
+          </a>
+          <div class="video-card__info">
+            <div class="video-card__title">{{ video.title }}</div>
+            <a href="{% url 'channel' video.author.username %}" class="video-card__channel" onclick="event.stopPropagation()">
+              {{ video.author.username }}
+            </a>
+            <div class="video-card__stats">
+              {{ video.views }} просмотров · {{ video.created_at|timesince }} назад
+            </div>
+          </div>
+        </div>
+
+      </a>
+      {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+    <nav class="mt-4">
+      <ul class="pagination">
+        {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}"><i class="bi bi-chevron-left"></i></a></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}"><i class="bi bi-chevron-right"></i></a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+
+  {% else %}
+    <div class="text-center py-5" style="color:var(--yt-text-2);">
+      <i class="bi bi-collection-play" style="font-size:64px;display:block;margin-bottom:16px;"></i>
+      <h3 style="font-size:20px;font-weight:600;color:var(--yt-text);">Здесь пока пусто</h3>
+      <p style="font-size:14px;margin-bottom:20px;">
+        Вы не подписаны ни на один канал, или авторы ещё не загрузили видео.
+      </p>
+      <a href="{% url 'home' %}" class="btn-yt-primary">
+        <i class="bi bi-house-fill me-1"></i> На главную
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

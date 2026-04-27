@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Редактировать видео{% else %}Загрузить видео{% endif %} — VidShare{% endblock %}
+
+{% block content %}
+<div class="px-4 py-3">
+<div class="yt-form-wrap">
+
+  <h1>
+    {% if object %}
+      <i class="bi bi-pencil-square me-2"></i>Редактировать видео
+    {% else %}
+      <i class="bi bi-camera-video-fill me-2"></i>Загрузить видео
+    {% endif %}
+  </h1>
+
+  {% if not object %}
+  <!-- Upload zone (shown on create only) -->
+  <div class="file-upload-zone mb-4" onclick="document.getElementById('id_video_file').click()">
+    <div class="file-upload-zone__icon">📹</div>
+    <div class="file-upload-zone__text">Перетащите видео или нажмите для выбора</div>
+    <div class="file-upload-zone__sub">MP4, WebM, OGG · До 2 ГБ</div>
+    <div id="fileNameDisplay" style="margin-top:12px;font-size:13px;color:var(--yt-link);display:none;"></div>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    <!-- Video file (hidden, triggered by zone) -->
+    {% if not object %}
+    <div class="mb-3" style="display:none;">
+      {{ form.video_file }}
+    </div>
+    {% endif %}
+
+    <!-- Title -->
+    <div class="mb-3">
+      <label for="{{ form.title.id_for_label }}" class="form-label">
+        Название <span style="color:var(--yt-red);">*</span>
+      </label>
+      {{ form.title }}
+      {% if form.title.errors %}
+        <div style="color:var(--yt-red);font-size:13px;margin-top:4px;">{{ form.title.errors|join:', ' }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Description -->
+    <div class="mb-3">
+      <label for="{{ form.description.id_for_label }}" class="form-label">Описание</label>
+      {{ form.description }}
+      {% if form.description.errors %}
+        <div style="color:var(--yt-red);font-size:13px;margin-top:4px;">{{ form.description.errors|join:', ' }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Thumbnail -->
+    <div class="mb-4">
+      <label for="{{ form.thumbnail.id_for_label }}" class="form-label">Превью (обложка)</label>
+      {% if object and object.thumbnail %}
+        <div class="mb-2">
+          <img src="{{ object.thumbnail.url }}" alt="Текущее превью"
+               style="height:120px;border-radius:8px;object-fit:cover;">
+          <span style="font-size:13px;color:var(--yt-text-2);margin-left:10px;">Текущее превью</span>
+        </div>
+      {% endif %}
+      {{ form.thumbnail }}
+      {% if form.thumbnail.errors %}
+        <div style="color:var(--yt-red);font-size:13px;margin-top:4px;">{{ form.thumbnail.errors|join:', ' }}</div>
+      {% endif %}
+      <div style="font-size:13px;color:var(--yt-text-2);margin-top:4px;">
+        JPG, PNG, WebP · Рекомендуемый размер 1280×720
+      </div>
+    </div>
+
+    <!-- Edit mode: show current file name -->
+    {% if object %}
+    <div class="mb-3">
+      <label class="form-label">{{ form.video_file.label }}</label>
+      {% if object.video_file %}
+        <div style="font-size:13px;color:var(--yt-text-2);margin-bottom:6px;">
+          <i class="bi bi-film me-1"></i> {{ object.video_file.name }}
+        </div>
+      {% endif %}
+      {{ form.video_file }}
+    </div>
+    {% endif %}
+
+    <!-- Non-field errors -->
+    {% if form.non_field_errors %}
+    <div class="yt-alert error mb-3">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ form.non_field_errors|join:', ' }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="d-flex gap-3 align-items-center">
+      <button type="submit" class="btn-yt-primary">
+        <i class="bi bi-cloud-upload-fill me-1"></i>
+        {% if object %}Сохранить изменения{% else %}Опубликовать{% endif %}
+      </button>
+      <a href="{% if object %}{% url 'video_detail' object.pk %}{% else %}{% url 'home' %}{% endif %}"
+         class="btn-yt-secondary">
+        Отмена
+      </a>
+    </div>
+
+  </form>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // File input → update zone display
+  const fileInput = document.getElementById('id_video_file');
+  if (fileInput) {
+    fileInput.addEventListener('change', function () {
+      const nameEl = document.getElementById('fileNameDisplay');
+      if (this.files.length && nameEl) {
+        nameEl.textContent = '✅ ' + this.files[0].name;
+        nameEl.style.display = 'block';
+      }
+    });
+  }
+
+  // Auto-add form-control class to Django form fields
+  document.querySelectorAll('input:not([type=file]):not([type=submit]):not([type=hidden]), textarea, select').forEach(el => {
+    el.classList.add('form-control');
+  });
+  document.querySelectorAll('input[type=file]').forEach(el => {
+    el.classList.add('form-control');
+  });
+</script>
+{% endblock %}

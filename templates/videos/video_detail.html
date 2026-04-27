@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ video.title }} — VidShare{% endblock %}
+
+{% block content %}
+<div class="px-4 py-3">
+<div class="video-detail-layout">
+
+  <!-- ═══ LEFT: Player + Info + Comments ═══ -->
+  <div>
+
+    <!-- Player -->
+    <div class="video-player-wrap">
+      <video id="player" playsinline controls>
+        <source src="{{ video.video_file.url }}" type="video/mp4">
+        Ваш браузер не поддерживает видео.
+      </video>
+    </div>
+
+    <!-- Title -->
+    <div class="video-info">
+      <h1 class="video-info__title">{{ video.title }}</h1>
+
+      <!-- Stats bar + action buttons -->
+      <div class="video-info__bar">
+        <div class="video-info__stats">
+          {{ video.views }} просмотров &nbsp;·&nbsp; {{ video.created_at|date:"d M Y" }}
+        </div>
+
+        <div class="video-info__actions">
+          <!-- Like / Dislike (HTMX) -->
+          <div id="like-section"
+               hx-get="{% url 'like_toggle' video.pk %}"
+               hx-trigger="none">
+            {% include 'partials/like_buttons.html' %}
+          </div>
+
+          <!-- Share (placeholder) -->
+          <button class="btn-yt-secondary d-flex align-items-center gap-2" onclick="navigator.clipboard.writeText(window.location.href);this.innerHTML='<i class=\'bi bi-check-lg\'></i> Скопировано'">
+            <i class="bi bi-share"></i> Поделиться
+          </button>
+
+          <!-- Edit / Delete (author only) -->
+          {% if user == video.author %}
+          <a href="{% url 'video_edit' video.pk %}" class="btn-yt-secondary d-flex align-items-center gap-2">
+            <i class="bi bi-pencil"></i> Изменить
+          </a>
+          <a href="{% url 'video_delete' video.pk %}" class="btn-danger-yt d-flex align-items-center gap-2">
+            <i class="bi bi-trash3"></i> Удалить
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Channel row -->
+      <div class="video-channel-row">
+        <div class="video-channel-row__left">
+          <a href="{% url 'channel' video.author.username %}">
+            {% if video.author.avatar %}
+              <img src="{{ video.author.avatar.url }}" class="video-channel-row__avatar" alt="{{ video.author.username }}">
+            {% else %}
+              <div class="video-channel-row__avatar d-flex align-items-center justify-content-center" style="background:var(--yt-surface-3);">
+                <i class="bi bi-person-fill" style="font-size:20px;color:var(--yt-text-2);"></i>
+              </div>
+            {% endif %}
+          </a>
+          <div>
+            <div class="video-channel-row__name">
+              <a href="{% url 'channel' video.author.username %}" style="color:var(--yt-text);">
+                {{ video.author.username }}
+              </a>
+            </div>
+            <div class="video-channel-row__subs">
+              {{ video.author.subscriptions.count }} подписчиков
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscribe button (HTMX) -->
+        {% if user.is_authenticated and user != video.author %}
+          <div id="subscribe-wrap">
+            {% include 'partials/subscribe_button.html' with channel=video.author %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Description -->
+      {% if video.description %}
+      <div class="video-description" id="descBox" onclick="toggleDesc()">
+        <div id="descText" style="max-height:80px;overflow:hidden;transition:max-height .3s ease;">
+          {{ video.description|linebreaksbr }}
+        </div>
+        <div class="video-description__toggle" id="descToggle">Ещё</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ═══ Comments ═══ -->
+    <div class="comments-section">
+      <div class="comments-section__header">
+        {{ video.comments.count }} комментариев
+      </div>
+
+      {% if user.is_authenticated %}
+      <!-- Add comment form -->
+      <div class="comment-form-row">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" class="comment-form-row__avatar" alt="{{ user.username }}">
+        {% else %}
+          <div class="comment-form-row__avatar d-flex align-items-center justify-content-center" style="background:var(--yt-surface-3);">
+            <i class="bi bi-person-fill" style="font-size:20px;color:var(--yt-text-2);"></i>
+          </div>
+        {% endif %}
+
+        <form style="flex:1;display:flex;flex-direction:column;gap:8px;"
+              hx-post="{% url 'comment_create' video.pk %}"
+              hx-target="#comments-list"
+              hx-swap="innerHTML"
+              hx-on::after-request="this.reset()">
+          {% csrf_token %}
+          <textarea name="text" class="form-control" rows="2" placeholder="Оставьте комментарий..." required></textarea>
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <button type="button" class="btn-yt-secondary" onclick="this.closest('form').reset()">Отмена</button>
+            <button type="submit" class="btn-yt-primary">
+              <i class="bi bi-send-fill"></i> Отправить
+            </button>
+          </div>
+        </form>
+      </div>
+      {% else %}
+      <div class="yt-alert" style="margin-bottom:20px;">
+        <i class="bi bi-info-circle-fill"></i>
+        <span><a href="{% url 'login' %}" style="color:var(--yt-link);">Войдите</a>, чтобы оставить комментарий.</span>
+      </div>
+      {% endif %}
+
+      <!-- Comments list -->
+      <div id="comments-list">
+        {% include 'partials/comments_list.html' %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ RIGHT: Related videos ═══ -->
+  <div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--yt-text);">
+      Похожие видео
+    </div>
+    {% for related in related_videos %}
+    <a href="{% url 'video_detail' related.pk %}" style="text-decoration:none;display:flex;gap:8px;margin-bottom:12px;cursor:pointer;">
+      <div style="position:relative;width:168px;height:94px;flex-shrink:0;border-radius:8px;overflow:hidden;background:var(--yt-surface-3);">
+        {% if related.thumbnail %}
+          <img src="{{ related.thumbnail.url }}" style="width:100%;height:100%;object-fit:cover;" alt="">
+        {% else %}
+          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--yt-text-3);font-size:28px;">
+            <i class="bi bi-play-circle"></i>
+          </div>
+        {% endif %}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--yt-text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px;">
+          {{ related.title }}
+        </div>
+        <div style="font-size:12px;color:var(--yt-text-2);">{{ related.author.username }}</div>
+        <div style="font-size:12px;color:var(--yt-text-2);">{{ related.views }} просмотров</div>
+      </div>
+    </a>
+    {% empty %}
+    <p style="font-size:14px;color:var(--yt-text-2);">Нет похожих видео.</p>
+    {% endfor %}
+  </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Plyr init
+  document.addEventListener('DOMContentLoaded', function () {
+    const player = new Plyr('#player', {
+      controls: ['play-large','play','progress','current-time','mute','volume','captions','settings','pip','airplay','fullscreen'],
+      speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] }
+    });
+  });
+
+  // Description toggle
+  function toggleDesc() {
+    const text   = document.getElementById('descText');
+    const toggle = document.getElementById('descToggle');
+    const open   = text.style.maxHeight === 'none';
+    text.style.maxHeight = open ? '80px' : 'none';
+    toggle.textContent   = open ? 'Ещё' : 'Скрыть';
+  }
+</script>
+{% endblock %}

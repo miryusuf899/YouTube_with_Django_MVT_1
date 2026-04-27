@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ channel.username }} — VidShare{% endblock %}
+
+{% block content %}
+<div class="px-4 py-3">
+
+  <!-- Banner -->
+  {% if channel.cover %}
+    <img src="{{ channel.cover.url }}" class="channel-banner" alt="Баннер канала">
+  {% else %}
+    <div class="channel-banner" style="background:linear-gradient(135deg,#ff000022,#065fd422);"></div>
+  {% endif %}
+
+  <!-- Channel header -->
+  <div class="channel-header">
+    {% if channel.avatar %}
+      <img src="{{ channel.avatar.url }}" class="channel-header__avatar" alt="{{ channel.username }}">
+    {% else %}
+      <div class="channel-header__avatar d-flex align-items-center justify-content-center"
+           style="background:var(--yt-surface-3);font-size:36px;color:var(--yt-text-2);">
+        <i class="bi bi-person-fill"></i>
+      </div>
+    {% endif %}
+
+    <div style="flex:1;">
+      <div class="channel-header__name">{{ channel.username }}</div>
+      <div class="channel-header__meta">
+        {{ channel.subscriptions.count }} подписчиков
+        &nbsp;·&nbsp;
+        {{ videos.count }} видео
+        {% if channel.description %}
+          &nbsp;·&nbsp; {{ channel.description|truncatechars:80 }}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Subscribe / Edit -->
+    <div>
+      {% if user.is_authenticated %}
+        {% if user == channel %}
+          <a href="{% url 'profile_edit' %}" class="btn-yt-secondary d-flex align-items-center gap-2">
+            <i class="bi bi-pencil"></i> Редактировать канал
+          </a>
+        {% else %}
+          <div id="subscribe-wrap">
+            {% include 'partials/subscribe_button.html' %}
+          </div>
+        {% endif %}
+      {% else %}
+        <a href="{% url 'login' %}" class="btn-subscribe">Подписаться</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="channel-tabs">
+    <div class="channel-tab active">Видео</div>
+    <div class="channel-tab">О канале</div>
+  </div>
+
+  <!-- Video grid -->
+  {% if videos %}
+    <div class="video-grid">
+      {% for video in videos %}
+      <a href="{% url 'video_detail' video.pk %}" class="video-card" style="text-decoration:none;">
+
+        <div class="video-card__thumb">
+          {% if video.thumbnail %}
+            <img src="{{ video.thumbnail.url }}" alt="{{ video.title }}" loading="lazy">
+          {% else %}
+            <div class="video-card__thumb-placeholder">
+              <i class="bi bi-play-circle"></i>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="video-card__meta">
+          <div style="width:36px;"></div>
+          <div class="video-card__info">
+            <div class="video-card__title">{{ video.title }}</div>
+            <div class="video-card__stats">
+              {{ video.views }} просмотров · {{ video.created_at|timesince }} назад
+            </div>
+          </div>
+        </div>
+
+      </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-5" style="color:var(--yt-text-2);">
+      <i class="bi bi-camera-video" style="font-size:64px;display:block;margin-bottom:16px;"></i>
+      <h3 style="font-size:18px;font-weight:600;color:var(--yt-text);">На этом канале пока нет видео</h3>
+      {% if user == channel %}
+        <a href="{% url 'video_create' %}" class="btn-yt-primary mt-3">
+          <i class="bi bi-camera-video-fill me-1"></i> Загрузить первое видео
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
