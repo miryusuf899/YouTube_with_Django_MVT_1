@@ -46,7 +46,8 @@
           <a href="{% url 'video_edit' video.pk %}" class="btn-yt-secondary d-flex align-items-center gap-2">
             <i class="bi bi-pencil"></i> Изменить
           </a>
-          <a href="{% url 'video_delete' video.pk %}" class="btn-danger-yt d-flex align-items-center gap-2">
+          <a href="{% url 'soft_delete_video' video.pk %}" class="btn-danger-yt d-flex align-items-center gap-2"
+             onclick="return confirm('Переместить видео в корзину?');">
             <i class="bi bi-trash3"></i> Удалить
           </a>
           {% endif %}

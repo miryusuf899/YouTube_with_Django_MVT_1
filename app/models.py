@@ -6,6 +6,10 @@ class User(AbstractUser):
     cover = models.ImageField(upload_to='covers/', blank=True)
     description = models.TextField(blank=True)
 
+class ActiveVideoManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(status=True)
+
 class Video(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='videos')
     title = models.CharField(max_length=200)
@@ -14,6 +18,21 @@ class Video(models.Model):
     thumbnail = models.ImageField(upload_to='thumbnails/', blank=True)
     views = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.BooleanField(default=True)          # ← новое поле
+
+    objects = ActiveVideoManager()       # по умолчанию только активные
+    all_objects = models.Manager()       # все, включая удалённые
+
+    def soft_delete(self):
+        self.status = False
+        self.save()
+
+    def hard_delete(self):
+        self.delete() 
+
+    def restore(self):
+        self.status = True
+        self.save()
 
 class Comment(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='comments')

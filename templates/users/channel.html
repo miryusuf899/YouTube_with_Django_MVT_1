@@ -60,7 +60,7 @@
     <div class="channel-tab">О канале</div>
   </div>
 
-  <!-- Video grid -->
+  <!-- Active videos -->
   {% if videos %}
     <div class="video-grid">
       {% for video in videos %}
@@ -98,6 +98,48 @@
           <i class="bi bi-camera-video-fill me-1"></i> Загрузить первое видео
         </a>
       {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Deleted videos (trash) - only for channel owner -->
+  {% if user == channel and deleted_videos %}
+    <div class="mt-5">
+      <h4 style="font-size:18px;font-weight:700;color:var(--yt-text); margin-bottom:16px;">
+        <i class="bi bi-trash me-2"></i> Корзина
+      </h4>
+      <div class="video-grid" style="opacity:0.7;">
+        {% for video in deleted_videos %}
+        <div class="video-card" style="pointer-events:auto;">
+          <div class="video-card__thumb">
+            {% if video.thumbnail %}
+              <img src="{{ video.thumbnail.url }}" alt="{{ video.title }}">
+            {% else %}
+              <div class="video-card__thumb-placeholder">
+                <i class="bi bi-play-circle"></i>
+              </div>
+            {% endif %}
+            <span style="position:absolute;top:8px;left:8px;background:#ff0000;color:#fff;font-size:12px;padding:2px 6px;border-radius:4px;">Удалено</span>
+          </div>
+          <div class="video-card__meta">
+            <div style="width:36px;"></div>
+            <div class="video-card__info">
+              <div class="video-card__title">{{ video.title }}</div>
+              <div class="video-card__stats">
+                {{ video.views }} просмотров
+              </div>
+              <div class="mt-2 d-flex gap-2">
+                <a href="{% url 'restore_video' video.pk %}" class="btn btn-sm btn-success" onclick="return confirm('Восстановить видео?');">
+                  <i class="bi bi-arrow-counterclockwise"></i> Восстановить
+                </a>
+                <a href="{% url 'video_delete' video.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Удалить навсегда? Это действие необратимо.');">
+                  <i class="bi bi-trash"></i> Удалить навсегда
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
     </div>
   {% endif %}
 

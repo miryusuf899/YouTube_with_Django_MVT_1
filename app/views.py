@@ -6,7 +6,9 @@ from django.db.models import Count
 from .models import Video, Comment, Like, Subscription, Notification, User
 from .forms import VideoForm, CommentForm, ProfileUpdateForm, RegisterForm
 from .permissions import VideoAuthorRequiredMixin, CommentAuthorRequiredMixin
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 
 class HomeView(ListView):
     model = Video
@@ -17,7 +19,6 @@ class HomeView(ListView):
     def get_queryset(self):
         return Video.objects.annotate(like_count=Count('likes')).order_by('-created_at')
 
-# --------------------- Видео (CRUD) ---------------------
 class VideoDetailView(DetailView):
     model = Video
     template_name = 'videos/video_detail.html'
@@ -45,7 +46,7 @@ class VideoCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('video_detail', kwargs={'pk': self.object.pk})   # ← добавь это
+        return reverse('video_detail', kwargs={'pk': self.object.pk}) 
 
 class VideoUpdateView(LoginRequiredMixin, VideoAuthorRequiredMixin, UpdateView):
     model = Video
@@ -57,23 +58,21 @@ class VideoDeleteView(LoginRequiredMixin, VideoAuthorRequiredMixin, DeleteView):
     template_name = 'videos/video_confirm_delete.html'
     success_url = reverse_lazy('home')
 
-# --------------------- Лайки (через HTMX) ---------------------
 class LikeToggleView(LoginRequiredMixin, View):
     def post(self, request, pk):
         video = get_object_or_404(Video, pk=pk)
         like, created = Like.objects.get_or_create(
             video=video,
             user=request.user,
-            defaults={'value': 1}  # по умолчанию лайк
+            defaults={'value': 1} 
         )
         if not created:
-            if like.value == 1:  # уже лайк – убираем
+            if like.value == 1: 
                 like.delete()
-            else:               # был дизлайк – меняем на лайк
+            else:               
                 like.value = 1
                 like.save()
-        # если нужно переключение, то можно сделать сложнее, для простоты лайк/дизлайк
-        # возвращаем HTML-фрагмент кнопок
+
         return render(request, 'partials/like_buttons.html', {
             'video': video,
             'user_like': 1 if like.pk and like.value == 1 else 0,
@@ -81,7 +80,6 @@ class LikeToggleView(LoginRequiredMixin, View):
             'dislikes_count': video.likes.filter(value=-1).count(),
         })
 
-# --------------------- Комментарии (через HTMX) ---------------------
 class CommentCreateView(LoginRequiredMixin, CreateView):
     model = Comment
     form_class = CommentForm
@@ -91,7 +89,6 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         form.instance.user = self.request.user
         form.instance.video = video
         form.save()
-        # возвращаем обновлённый список комментариев
         comments = video.comments.all().order_by('-created_at')
         return render(self.request, 'partials/comments_list.html', {
             'comments': comments,
@@ -101,7 +98,7 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
 class CommentDeleteView(LoginRequiredMixin, CommentAuthorRequiredMixin, DeleteView):
     model = Comment
     pk_url_kwarg = 'comment_pk'
-    template_name = 'partials/comments_list.html'  # перерисуем список после удаления
+    template_name = 'partials/comments_list.html' 
 
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -147,6 +144,13 @@ class ChannelDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['videos'] = self.object.videos.all().order_by('-created_at')
+        if self.request.user == self.object:
+            context['deleted_videos'] = Video.all_objects.filter(
+                author=self.object,
+                status=False
+            ).order_by('-created_at')
+        else:
+            context['deleted_videos'] = None
         return context
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
@@ -205,3 +209,22 @@ class SubscriptionFeedView(LoginRequiredMixin, ListView):
             subscriber=self.request.user
         ).values_list('channel_id', flat=True)
         return Video.objects.filter(author_id__in=subscribed_channels).order_by('-created_at')
+    
+@login_required
+def soft_delete_video(request, pk):
+    video = get_object_or_404(Video, pk=pk)
+    if video.author != request.user:
+        return redirect('home')
+    video.soft_delete()
+    messages.success(request, 'Видео перемещено в корзину.')
+    return redirect('channel', username=request.user.username)
+
+@login_required
+def restore_video(request, pk):
+    video = get_object_or_404(Video.all_objects, pk=pk)
+    if video.author != request.user:
+        messages.error(request, 'Вы не можете восстановить чужое видео.')
+        return redirect('home')
+    video.restore()
+    messages.success(request, 'Видео восстановлено.')
+    return redirect('video_detail', pk=video.pk)
